@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+# URL Call
+# Author : @schtho Thomas Schmeiduch
+
+import os, sys
+import requests
+import re
+
+def replace_variables(str, replacements_dict):
+    if str is None:
+        return str
+    re_pattern = r"\$(.*?)\$"
+    find_list = re.findall(re_pattern, str)
+    for elem in find_list:
+        if elem in replacements_dict:
+            str = str.replace(f"${elem}$", replacements_dict[elem])
+    return str
+
+context = dict([ (var[7:], value)
+                  for (var, value) in list(os.environ.items())
+                  if var.startswith("NOTIFY_")])
+
+# print (context)
+
+regexp = re.compile(r'CRITICAL|WARNING|UNKNOWN|OK|DOWN|UP')
+
+if 'PARAMETER_REQUEST_URLS' in context:
+    request_url_list = context["PARAMETER_REQUEST_URLS"]
+    request_url_list = request_url_list.split("http")
+    request_url_list = list(filter(None, request_url_list))
+    request_url_list = [f"http{i}" if not i.startswith("http") else i for i in request_url_list]
+else:
+    sys.stderr.write("Request URL not set\n")
+    sys.exit(2)
+
+if 'PARAMETER_REQUEST_BODY' in context:
+    body = context['PARAMETER_REQUEST_BODY']
+else:
+    body = None
+
+if 'PARAMETER_REQUEST_METHOD' in context:
+    method = context['PARAMETER_REQUEST_METHOD']
+else:
+    sys.stderr.write("Request Method not set\n")
+    sys.exit(2)
+
+# replace Variables
+request_url_list = [replace_variables(url, context) for url in request_url_list]
+body = replace_variables(body, context)
+
+print(request_url_list)
+print(f"Body: {body}")
+print(f"Method: {method}")
+
+
+headers = {"Content-type": "application/json", "Accept": "text/plain"}
+
+for url in request_url_list:
+    print(url)
+    if method == "GET":
+        conn = requests.get(url, data = body, headers = headers)
+    elif method == "POST":
+        conn = requests.post(url, data = body, headers = headers)
+    elif method == "PUT":
+        conn = requests.put(url, data = body, headers = headers)
+    elif method == "DELETE":
+        conn = requests.delete(url, data = body, headers = headers)
+
+
+# if conn.status_code == 200:
+#   sys.exit(0)
+# else:
+#   sys.stderr.write(conn.text)
+#   sys.exit(2)
+sys.exit(0)
