@@ -4,6 +4,13 @@
 
 from cmk.utils.site import omd_site
 
+from cmk.gui.valuespec import (
+    Dictionary,
+    DropdownChoice,
+    TextAreaUnicode,
+    ListOfStrings
+)
+
 register_notification_parameters("urlcall", Dictionary(
     elements = [
         ("request_url",
